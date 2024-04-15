@@ -1,3 +1,4 @@
+
 function getCookie(name) {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
@@ -63,21 +64,8 @@ async function doWebGet(api) {
 }
 
 function getStartEnd() {
-    var currentDate = new Date();
-    // If the current day isn't Monday, find the most recent Monday
-    if (currentDate.getUTCDay() !== 1) { // 0 is Sunday, 1 is Monday
-        var daysToMonday = 1 - currentDate.getUTCDay(); // Calculate days until next Monday
-        if (daysToMonday > 0) daysToMonday -= 7; // If the current day is after Monday, subtract a week
-
-        currentDate.setUTCDate(currentDate.getUTCDate() + daysToMonday); // Set currentUTCDate to the most recent Monday
-    }
-
-    // Set start date to currentUTCDate
-    var startDate = new Date(currentDate);
-    var endDate = new Date(startDate);
-
-    // Find the date 4 weeks from the start date
-    endDate.setUTCDate(startDate.getUTCDate() + 28);
+    let datePairs = [];
+    var date = new Date();
 
     // Format dates as "YYYY-MM-DDTHH:MM:SSZ"
     function formatDate(date) {
@@ -90,11 +78,18 @@ function getStartEnd() {
         return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}Z`;
     }
 
-    // Format start date and date 4 weeks from start date
-    var formattedStartDate = formatDate(startDate);
-    var formattedEndDate = formatDate(endDate);
+    for (var i = 0; i < 13; i++) {
+    var startDate = new Date(date.getFullYear(), date.getMonth() - i, 1);
+    var endDate = new Date(date.getFullYear(), date.getMonth() + 1 - i, 0);
+        // Format start date and date 4 weeks from start date
+        var formattedStartDate = formatDate(startDate);
+        var formattedEndDate = formatDate(endDate);
 
-    return [formattedStartDate, formattedEndDate];
+        datePairs.push([formattedStartDate, formattedEndDate]);
+    }
+
+
+    return datePairs;
   }
 
   function mapActivities(list) {
@@ -122,15 +117,14 @@ function getStartEnd() {
         role = 'CS';
       }
 
-      if (shift.hasOwnProperty('shiftId') && ['ISS', 'CS', 'Pl.'].includes(role)) {
-        summary.push({
-          start: startTime,
-          end: endTime,
-          duration: durationMinutes,
-          role: role,
-          isTimeOff: false
-        });
-      }
+      summary.push({
+        start: startTime,
+        end: endTime,
+        duration: durationMinutes,
+        activity: activityName,
+        role: role,
+        isTimeOff: false
+      });
       if (shift.eventType === "TimeOffEvent") {
         timeOffs.push({
           start: startTime,
@@ -183,24 +177,7 @@ function setSimplePage(title, content) {
       `;
 }
 
-function fmtTime(time) {
-  // returns 9am, 9pm or 9:30am
-  let hours = time.getHours();
-  let minutes = time.getMinutes();
-  let ampm = hours >= 12 ? 'pm' : 'am';
-  hours = hours % 12;
-  hours = hours ? hours : 12; // the hour '0' should be '12'
-
-  if (minutes === 0) {
-    return hours + ampm;
-  } else {
-    return hours + ':' + minutes.toString().padStart(2, '0') + ampm;
-  }
-
-}
-
 function displayData(vcb_data) {
-  vcb_data.sort((a, b) => a.start - b.start || b.role.localeCompare(a.role) || a.end - b.end);
   const base_page = `
 <style>
  .close {
@@ -217,13 +194,6 @@ function displayData(vcb_data) {
    cursor: pointer;
  }
 
- .table {
-   display: flex;
-   flex-direction: row;
-   justify-content: space-between;
-   height: 100%;
- }
-
  .column {
    flex: 1;
    padding: 10px;
@@ -235,6 +205,7 @@ function displayData(vcb_data) {
  }
  body {
    background: #eee;
+   overflow: scroll;
    font-family: Arial, Helvetica, sans-serif;
    font-size: 26px;
  }
@@ -242,66 +213,18 @@ function displayData(vcb_data) {
 </style>
 
 <span class="close" onclick="location.reload()">&times;</span>
-<div class="table">
+<div class="text">
 </div>
 `;
-   document.body.innerHTML = base_page;
-   let day_columns = {};
-  vcb_data.forEach((item) => {
-     let date = new Date(item.start);
-     let date_string = date.getFullYear() + '-' + (date.getMonth() + 1).toString().padStart(2, '0') + '-' + date.getDate().toString().padStart(2, '0');
-     if (!day_columns[date_string]) {
-       // create a div with class column
-       let div = document.createElement('div');
-       div.classList.add('column');
-       // put an h3 inside
-       let h3 = document.createElement('h3');
-       h3.textContent = date.toLocaleDateString('en-US', {weekday: 'long', year: 'numeric', month: 'short', day: 'numeric'});
-       div.appendChild(h3);
-       // put a ul inside
-       let ul = document.createElement('ul');
-       div.appendChild(ul);
-       day_columns[date_string] = div;
-     }
+  document.body.innerHTML = base_page;
 
-     let li = document.createElement('li');
-     let role = item.role;
-     if (item.isDraft) {
-        role += ':Draft';
-     }
+  for (let i = 0; i < vcb_data.length; i++) {
+    let data = vcb_data[i];
+    let pre_element = document.createElement('pre');
+    pre_element.innerText = data;
+    document.querySelector('.text').appendChild(pre_element);
+  }
 
-     let role_text = role === "CS" ? '' : `(${role})`;
-
-     li.innerHTML = `<strong>${fmtTime(item.start)} to ${fmtTime(item.end)}</strong>: ${item.name} ${role_text}`;
-     if (item.role === 'ISS') {
-        li.style.color = 'darkred';
-     }
-     if (item.role === 'Pl.') {
-        li.style.color = '#007bd4';
-     }
-     if (item.isTimeOff) {
-       li.style.textDecoration = 'line-through';
-       li.style.color = 'gray';
-     }
-     if (item.isDraft) {
-       li.style.textDecoration = 'italic';
-       li.style.color = 'darkgreen';
-     }
-     day_columns[date_string].appendChild(li);
-
-   });
-
-   // go through the sorted list of day_column properties
-   let sorted_days = Object.keys(day_columns).sort();
-   sorted_days.forEach((day) => {
-     let table = document.querySelector('.table');
-      table.appendChild(day_columns[day]);
-   });
-
-    document.body.addEventListener("wheel", (evt) => {
-      evt.preventDefault();
-      document.body.scrollLeft -= evt.deltaY;
-    });
 
 }
 
@@ -371,36 +294,56 @@ function displayData(vcb_data) {
         }
       });
 
-      let [start, end] = getStartEnd();
-      let schedule = (await doWebPost(BODY_SCHEDULE(start, end)))['data']['attributes']['resourceData'];
+      let months = getStartEnd();
       let activities = (await doWebGet("v1/activities"));
 
-      let mappedActivities = mapActivities(activities['data']);
-
       let shifts = [];
+      let shift_ids = [];
+      shifts.push(`id,shift_id,name,date,start_time,end_time,duration,activity,role,isTimeOff`);
 
-      schedule.forEach(function(resource) {
-        let resourceDetails = resource['workResourceDetails'];
-        let name = resourceDetails['name']['first'] + ' ' + resourceDetails['name']['last'];
+      let uid = 1;
 
-        // let draft = summarize(resource['draftSchedule']['events'], mappedWorkRules);
-        let published = summarize(resource['publishedSchedule']['events'], mappedActivities);
 
-        for (let i = 0; i < published.length; i++) {
-          let shift = published[i];
+      for (let i = 0; i < months.length; i++) {
+        let start = months[i][0];
+        let end = months[i][1]
 
-          shifts.push({
-            name: name,
-            start: shift.start,
-            end: shift.end,
-            duration: shift.duration,
-            role: shift.role,
-            isTimeOff: shift.isTimeOff,
-            isDraftOnly: false
-          });
-        }
 
-      });
+        let schedule = (await doWebPost(BODY_SCHEDULE(start, end)))['data']['attributes']['resourceData'];
+
+        let mappedActivities = mapActivities(activities['data']);
+
+        schedule.forEach(function(resource) {
+          let resourceDetails = resource['workResourceDetails'];
+          let name = resourceDetails['name']['first'] + ' ' + resourceDetails['name']['last'];
+
+            // let draft = summarize(resource['draftSchedule']['events'], mappedWorkRules);
+            let published = summarize(resource['publishedSchedule']['events'], mappedActivities);
+
+            for (let i = 0; i < published.length; i++) {
+            let shift = published[i];
+            let date = new Date(shift.start);
+            let date_string = date.getFullYear() + '-' + (date.getMonth() + 1).toString().padStart(2, '0') + '-' + date.getDate().toString().padStart(2, '0');
+            let start_time_string = date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+            let end_date = new Date(shift.end);
+              let end_time_string = end_date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+
+            let shift_ref = `${resourceDetails['id']}-${date_string}`;
+            let shift_id = shift_ids.findIndex(shift => shift === shift_ref);
+
+            if (shift_id == -1) {
+              shift_ids.push(shift_ref);
+              shift_id = shift_ids.length - 1;
+            }
+
+            shifts.push(`${uid},${shift_id},${name},${date_string},${start_time_string},${end_time_string},${shift.duration},${shift.activity},${shift.role},${shift.isTimeOff}`);
+
+            uid += 1;
+            }
+
+        });
+
+      }
 
       let modal = document.getElementById('vcb-modal');
       if (modal) {
