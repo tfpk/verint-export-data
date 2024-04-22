@@ -203,6 +203,13 @@ function displayData(vcb_data) {
    height: 90vh;
    overflow-y: scroll;
  }
+
+ .x-body {
+    overflow: scroll !important;
+  }
+  .x-box-layout-ct {
+    overflow: scroll !important;
+  }
  body {
    background: #eee;
    overflow: scroll;
@@ -213,14 +220,14 @@ function displayData(vcb_data) {
 </style>
 
 <span class="close" onclick="location.reload()">&times;</span>
-<div class="text">
-</div>
+<pre class="text">
+</pre>
 `;
   document.body.innerHTML = base_page;
 
   for (let i = 0; i < vcb_data.length; i++) {
     let data = vcb_data[i];
-    let pre_element = document.createElement('pre');
+    let pre_element = document.createElement('span');
     pre_element.innerText = data;
     document.querySelector('.text').appendChild(pre_element);
   }
@@ -299,7 +306,7 @@ function displayData(vcb_data) {
 
       let shifts = [];
       let shift_ids = [];
-      shifts.push(`id,shift_id,name,date,start_time,end_time,duration,activity,role,isTimeOff`);
+      shifts.push(`id,shift_id,name,date,start_time,end_time,duration,activity,role,isTimeOff\n`);
 
       let uid = 1;
 
@@ -315,7 +322,7 @@ function displayData(vcb_data) {
 
         schedule.forEach(function(resource) {
           let resourceDetails = resource['workResourceDetails'];
-          let name = resourceDetails['name']['first'] + ' ' + resourceDetails['name']['last'];
+          let name = '"' + resourceDetails['name']['last'] + ', ' + resourceDetails['name']['first'] + '"';
 
             // let draft = summarize(resource['draftSchedule']['events'], mappedWorkRules);
             let published = summarize(resource['publishedSchedule']['events'], mappedActivities);
@@ -336,7 +343,36 @@ function displayData(vcb_data) {
               shift_id = shift_ids.length - 1;
             }
 
-            shifts.push(`${uid},${shift_id},${name},${date_string},${start_time_string},${end_time_string},${shift.duration},${shift.activity},${shift.role},${shift.isTimeOff}`);
+            let extBefore = shift['extensionBefore'];
+
+            if (extBefore && extBefore['durationMinutes'] > 0) {
+              let durationMinutes = extBefore['durationMinutes'];
+              let date = new Date(durationMinutes['startTime']);
+              let date_string = date.getFullYear() + '-' + (date.getMonth() + 1).toString().padStart(2, '0') + '-' + date.getDate().toString().padStart(2, '0');
+              let start_time_string = date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+              let end_date = new Date(durationMinutes['endTime']);
+              let end_time_string = end_date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+              let activity = activities[extBefore['activityId']];
+              shifts.push(`${uid},${shift_id},${name},${date_string},${start_time_string},${end_time_string},${durationMinutes},${activity},,N/A\n`);
+
+              uid += 1;
+            }
+
+            let extAfter = shift['extensionAfter'];
+
+            if (extAfter && extAfter['durationMinutes'] > 0) {
+              let durationMinutes = extAfter['durationMinutes'];
+              let date = new Date(durationMinutes['startTime']);
+              let date_string = date.getFullYear() + '-' + (date.getMonth() + 1).toString().padStart(2, '0') + '-' + date.getDate().toString().padStart(2, '0');
+              let start_time_string = date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+              let end_date = new Date(durationMinutes['endTime']);
+              let end_time_string = end_date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+              let activity = activities[extAfter['activityId']];
+              shifts.push(`${uid},${shift_id},${name},${date_string},${start_time_string},${end_time_string},${durationMinutes},${activity},,N/A\n`);
+
+              uid += 1;
+            }
+            shifts.push(`${uid},${shift_id},${name},${date_string},${start_time_string},${end_time_string},${shift.duration},${shift.activity},${shift.role},${shift.isTimeOff}\n`);
 
             uid += 1;
             }
