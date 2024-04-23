@@ -123,7 +123,9 @@ function getStartEnd() {
         duration: durationMinutes,
         activity: activityName,
         role: role,
-        isTimeOff: false
+        isTimeOff: false,
+        extensionBefore: shift['extensionBefore'],
+        extensionAfter: shift['extensionAfter'],
       });
       if (shift.eventType === "TimeOffEvent") {
         timeOffs.push({
@@ -204,6 +206,12 @@ function displayData(vcb_data) {
    overflow-y: scroll;
  }
 
+ .x-viewport {
+    overflow: scroll !important;
+  }
+ .x-viewport > .x-body {
+    overflow: scroll !important;
+  }
  .x-body {
     overflow: scroll !important;
   }
@@ -328,46 +336,46 @@ function displayData(vcb_data) {
             let published = summarize(resource['publishedSchedule']['events'], mappedActivities);
 
             for (let i = 0; i < published.length; i++) {
-            let shift = published[i];
-            let date = new Date(shift.start);
-            let date_string = date.getFullYear() + '-' + (date.getMonth() + 1).toString().padStart(2, '0') + '-' + date.getDate().toString().padStart(2, '0');
-            let start_time_string = date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
-            let end_date = new Date(shift.end);
-              let end_time_string = end_date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
-
-            let shift_ref = `${resourceDetails['id']}-${date_string}`;
-            let shift_id = shift_ids.findIndex(shift => shift === shift_ref);
-
-            if (shift_id == -1) {
-              shift_ids.push(shift_ref);
-              shift_id = shift_ids.length - 1;
-            }
-
-            let extBefore = shift['extensionBefore'];
-
-            if (extBefore && extBefore['durationMinutes'] > 0) {
-              let durationMinutes = extBefore['durationMinutes'];
-              let date = new Date(durationMinutes['startTime']);
+              let shift = published[i];
+              let date = new Date(shift.start);
               let date_string = date.getFullYear() + '-' + (date.getMonth() + 1).toString().padStart(2, '0') + '-' + date.getDate().toString().padStart(2, '0');
               let start_time_string = date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
-              let end_date = new Date(durationMinutes['endTime']);
+              let end_date = new Date(shift.end);
               let end_time_string = end_date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
-              let activity = activities[extBefore['activityId']];
-              shifts.push(`${uid},${shift_id},${name},${date_string},${start_time_string},${end_time_string},${durationMinutes},${activity},,N/A\n`);
 
-              uid += 1;
-            }
+              let shift_ref = `${resourceDetails['id']}-${date_string}`;
+              let shift_id = shift_ids.findIndex(shift => shift === shift_ref);
 
-            let extAfter = shift['extensionAfter'];
+              if (shift_id == -1) {
+                shift_ids.push(shift_ref);
+                shift_id = shift_ids.length - 1;
+              }
+
+              let extBefore = shift['extensionBefore'];
+
+              if (extBefore && extBefore['durationMinutes'] > 0) {
+                let durationMinutes = extBefore['durationMinutes'];
+                let date = new Date(extBefore['startTime']);
+                let date_string = date.getFullYear() + '-' + (date.getMonth() + 1).toString().padStart(2, '0') + '-' + date.getDate().toString().padStart(2, '0');
+                let start_time_string = date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+                let end_date = new Date(extBefore['endTime']);
+                let end_time_string = end_date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+                let activity = mappedActivities[extBefore['activityId']];
+                shifts.push(`${uid},${shift_id},${name},${date_string},${start_time_string},${end_time_string},${durationMinutes},${activity},,N/A\n`);
+
+                uid += 1;
+              }
+
+              let extAfter = shift['extensionAfter'];
 
             if (extAfter && extAfter['durationMinutes'] > 0) {
               let durationMinutes = extAfter['durationMinutes'];
-              let date = new Date(durationMinutes['startTime']);
+              let date = new Date(extBefore['startTime']);
               let date_string = date.getFullYear() + '-' + (date.getMonth() + 1).toString().padStart(2, '0') + '-' + date.getDate().toString().padStart(2, '0');
               let start_time_string = date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
-              let end_date = new Date(durationMinutes['endTime']);
+              let end_date = new Date(extBefore['endTime']);
               let end_time_string = end_date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
-              let activity = activities[extAfter['activityId']];
+              let activity = mappedActivities[extAfter['activityId']];
               shifts.push(`${uid},${shift_id},${name},${date_string},${start_time_string},${end_time_string},${durationMinutes},${activity},,N/A\n`);
 
               uid += 1;
