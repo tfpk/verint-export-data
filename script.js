@@ -370,10 +370,10 @@ function displayData(vcb_data) {
 
             if (extAfter && extAfter['durationMinutes'] > 0) {
               let durationMinutes = extAfter['durationMinutes'];
-              let date = new Date(extBefore['startTime']);
+              let date = new Date(extAfter['startTime']);
               let date_string = date.getFullYear() + '-' + (date.getMonth() + 1).toString().padStart(2, '0') + '-' + date.getDate().toString().padStart(2, '0');
               let start_time_string = date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
-              let end_date = new Date(extBefore['endTime']);
+              let end_date = new Date(extAfter['endTime']);
               let end_time_string = end_date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
               let activity = mappedActivities[extAfter['activityId']];
               shifts.push(`${uid},${shift_id},${name},${date_string},${start_time_string},${end_time_string},${durationMinutes},${activity},,N/A\n`);
