@@ -80,7 +80,7 @@ function getStartEnd() {
 
     for (var i = 0; i < 13; i++) {
     var startDate = new Date(date.getFullYear(), date.getMonth() - i, 1);
-    var endDate = new Date(date.getFullYear(), date.getMonth() + 1 - i, 0);
+    var endDate = new Date(date.getFullYear(), date.getMonth() + 1 - i, 1);
         // Format start date and date 4 weeks from start date
         var formattedStartDate = formatDate(startDate);
         var formattedEndDate = formatDate(endDate);
@@ -329,6 +329,11 @@ function displayData(vcb_data) {
         let mappedActivities = mapActivities(activities['data']);
 
         schedule.forEach(function(resource) {
+          if (!('workResourceDetails' in resource)) {
+            console.log('No workResourceDetails in resource');
+            console.log(resource);
+            return;
+          }
           let resourceDetails = resource['workResourceDetails'];
           let name = '"' + resourceDetails['name']['last'] + ', ' + resourceDetails['name']['first'] + '"';
 
@@ -368,21 +373,21 @@ function displayData(vcb_data) {
 
               let extAfter = shift['extensionAfter'];
 
-            if (extAfter && extAfter['durationMinutes'] > 0) {
-              let durationMinutes = extAfter['durationMinutes'];
-              let date = new Date(extAfter['startTime']);
-              let date_string = date.getFullYear() + '-' + (date.getMonth() + 1).toString().padStart(2, '0') + '-' + date.getDate().toString().padStart(2, '0');
-              let start_time_string = date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
-              let end_date = new Date(extAfter['endTime']);
-              let end_time_string = end_date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
-              let activity = mappedActivities[extAfter['activityId']];
-              shifts.push(`${uid},${shift_id},${name},${date_string},${start_time_string},${end_time_string},${durationMinutes},${activity},,N/A\n`);
+              if (extAfter && extAfter['durationMinutes'] > 0) {
+                let durationMinutes = extAfter['durationMinutes'];
+                let date = new Date(extAfter['startTime']);
+                let date_string = date.getFullYear() + '-' + (date.getMonth() + 1).toString().padStart(2, '0') + '-' + date.getDate().toString().padStart(2, '0');
+                let start_time_string = date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+                let end_date = new Date(extAfter['endTime']);
+                let end_time_string = end_date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+                let activity = mappedActivities[extAfter['activityId']];
+                shifts.push(`${uid},${shift_id},${name},${date_string},${start_time_string},${end_time_string},${durationMinutes},${activity},,N/A\n`);
+
+                uid += 1;
+              }
+              shifts.push(`${uid},${shift_id},${name},${date_string},${start_time_string},${end_time_string},${shift.duration},${shift.activity},${shift.role},${shift.isTimeOff}\n`);
 
               uid += 1;
-            }
-            shifts.push(`${uid},${shift_id},${name},${date_string},${start_time_string},${end_time_string},${shift.duration},${shift.activity},${shift.role},${shift.isTimeOff}\n`);
-
-            uid += 1;
             }
 
         });
